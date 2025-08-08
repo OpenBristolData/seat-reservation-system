@@ -8,24 +8,6 @@ use App\Http\Controllers\Admin\SeatController as AdminSeatController;
 use App\Http\Controllers\Admin\ReservationController as AdminReservationController;
 use App\Http\Controllers\Auth\GoogleController;
 
-
-//Testing
-Route::get('/debug-api', function () {
-    $testEmail = 'gihangunathilakavck@gmail.com'; // Replace with a valid test email
-    $response = Http::withHeaders([
-        'Content-Type' => 'application/json',
-    ])->post('https://prohub.slt.com.lk/ProhubTrainees/api/MainApi/AllActiveTrainees', [
-        'secretKey' => 'TraineesApi_SK_8d!x7F#mZ3@pL2vW'
-    ]);
-
-    return response()->json([
-        'status' => $response->status(),
-        'body' => $response->body(),
-        'successful' => $response->successful(),
-        'email' => $testEmail
-    ]);
-});
-
 // Authentication Routes
 Route::get('/', [AuthController::class, 'showLoginForm'])->name('login');
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');

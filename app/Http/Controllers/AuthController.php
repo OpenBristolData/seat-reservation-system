@@ -20,31 +20,35 @@ class AuthController extends Controller
     }
 
     try {
-          $response = Http::withHeaders([
+        $response = Http::withHeaders([
             'Content-Type' => 'application/json',
         ])->post('https://prohub.slt.com.lk/ProhubTrainees/api/MainApi/AllActiveTrainees', [
             'secretKey' => 'TraineesApi_SK_8d!x7F#mZ3@pL2vW'
         ]);
 
-        // Add detailed logging
-        Log::channel('api')->debug('API Request', [
-            'email' => $email,
-            'status_code' => $response->status(),
-            'response_body' => $response->body(),
-            'successful' => $response->successful(),
-            'json_data' => $response->json() ?? null
-        ]);
-
         if ($response->successful()) {
             $data = $response->json();
-            // ... (rest of your logic) ...
+            
+            if (isset($data['isSuccess']) && $data['isSuccess'] && isset($data['dataBundle'])) {
+                foreach ($data['dataBundle'] as $trainee) {
+                    if (isset($trainee['Trainee_Email']) && strtolower($trainee['Trainee_Email']) === strtolower($email)) {
+                        return true;
+                    }
+                }
+            }
         }
-
-    } catch (\Exception $e) {
-        Log::channel('api')->error('API Call Failed', [
+        
+        Log::error('Email authorization failed', [
             'email' => $email,
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
+            'response' => $response->body(),
+            'status' => $response->status()
+        ]);
+        
+        return false;
+    } catch (\Exception $e) {
+        Log::error('Email authorization exception', [
+            'email' => $email,
+            'error' => $e->getMessage()
         ]);
         return false;
     }
