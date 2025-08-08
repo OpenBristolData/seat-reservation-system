@@ -1,4 +1,5 @@
 <?php
+// app/Services/EmailAuthorizationService.php
 
 namespace App\Services;
 
@@ -16,10 +17,9 @@ class EmailAuthorizationService
             
             $data = $response->json();
             
-            if ($data['isSuccess'] ?? false) {
-                $authorizedEmails = collect($data['dataBundle'] ?? [])
-                    ->pluck('Trainee_Email')
-                    ->map(fn ($email) => strtolower($email))
+            if ($data['isSuccess'] && isset($data['dataBundle'])) {
+                $authorizedEmails = collect($data['dataBundle'])
+                    ->map(fn($item) => strtolower($item['Trainee_Email']))
                     ->toArray();
                 
                 return in_array(strtolower($email), $authorizedEmails);
@@ -27,7 +27,7 @@ class EmailAuthorizationService
             
             return false;
         } catch (\Exception $e) {
-            Log::error('Email authorization failed: ' . $e->getMessage());
+            Log::error('Email authorization API error: ' . $e->getMessage());
             return false;
         }
     }

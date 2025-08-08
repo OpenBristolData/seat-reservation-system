@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/Auth/GoogleController.php
 
 namespace App\Http\Controllers\Auth;
 
@@ -11,7 +12,7 @@ use Illuminate\Validation\ValidationException;
 
 class GoogleController extends Controller
 {
-    protected EmailAuthorizationService $emailAuthService;
+    protected $emailAuthService;
 
     public function __construct(EmailAuthorizationService $emailAuthService)
     {
@@ -28,22 +29,29 @@ class GoogleController extends Controller
         try {
             $googleUser = Socialite::driver('google')->user();
             
+            // Verify email is authorized
             if (!$this->emailAuthService->isEmailAuthorized($googleUser->getEmail())) {
                 throw ValidationException::withMessages([
-                    'google' => 'Your Google email is not authorized for access.'
+                    'google' => 'This Google email is not authorized for access. Please use your official trainee email.'
                 ]);
             }
             
-            $user = User::updateOrCreate(
-                ['email' => $googleUser->getEmail()],
-                [
+            $user = User::where('email', $googleUser->getEmail())->first();
+            
+            if (!$user) {
+                $user = User::create([
                     'name' => $googleUser->getName(),
-                    'google_id' => $googleUser->getId(),
+                    'email' => $googleUser->getEmail(),
                     'password' => bcrypt(rand(100000, 999999)),
-                    'role' => 'intern'
-                ]
-            );
-
+                    'google_id' => $googleUser->getId(),
+                    'role' => 'intern',
+                ]);
+            } else {
+                if (empty($user->google_id)) {
+                    $user->update(['google_id' => $googleUser->getId()]);
+                }
+            }
+            
             Auth::login($user);
             return redirect('/dashboard');
             
