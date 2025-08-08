@@ -6,55 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
 class GoogleController extends Controller
 {
-      // Check if email is authorized via API
-    private function isAuthorizedEmail($email)
-{
-    // Always allow these admin emails
-    $adminEmails = ['admin@example.com', 'admin@seat.com'];
-    if (in_array(strtolower($email), array_map('strtolower', $adminEmails))) {
-        return true;
-    }
-
-    try {
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-        ])->post('https://prohub.slt.com.lk/ProhubTrainees/api/MainApi/AllActiveTrainees', [
-            'secretKey' => 'TraineesApi_SK_8d!x7F#mZ3@pL2vW'
-        ]);
-
-        if ($response->successful()) {
-            $data = $response->json();
-            
-            if (isset($data['isSuccess']) && $data['isSuccess'] && isset($data['dataBundle'])) {
-                foreach ($data['dataBundle'] as $trainee) {
-                    if (isset($trainee['Trainee_Email']) && strtolower($trainee['Trainee_Email']) === strtolower($email)) {
-                        return true;
-                    }
-                }
-            }
-        }
-        
-        Log::error('Email authorization failed (Google)', [
-            'email' => $email,
-            'response' => $response->body(),
-            'status' => $response->status()
-        ]);
-        
-        return false;
-    } catch (\Exception $e) {
-        Log::error('Email authorization exception (Google)', [
-            'email' => $email,
-            'error' => $e->getMessage()
-        ]);
-        return false;
-    }
-}
-
     public function redirectToGoogle()
     {
         return Socialite::driver('google')->redirect();
@@ -64,22 +18,14 @@ class GoogleController extends Controller
     {
         try {
             $googleUser = Socialite::driver('google')->user();
-            $email = $googleUser->getEmail();
             
-            // Verify email is authorized before proceeding
-            if (!$this->isAuthorizedEmail($email)) {
-                return redirect('/login')->withErrors([
-                    'google' => 'This email is not authorized for student access.'
-                ]);
-            }
-            
-            $user = User::where('email', $email)->first();
+            $user = User::where('email', $googleUser->getEmail())->first();
             
             if (!$user) {
                 // Create new user with Google data
                 $user = User::create([
                     'name' => $googleUser->getName(),
-                    'email' => $email,
+                    'email' => $googleUser->getEmail(),
                     'password' => bcrypt(rand(100000, 999999)), // Random password
                     'google_id' => $googleUser->getId(),
                     'role' => 'intern',
