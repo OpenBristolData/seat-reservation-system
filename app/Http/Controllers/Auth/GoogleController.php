@@ -24,41 +24,43 @@ class GoogleController extends Controller
         return Socialite::driver('google')->redirect();
     }
 
-    public function handleGoogleCallback()
-    {
-        try {
-            $googleUser = Socialite::driver('google')->user();
-            
-            // Verify email is authorized
-            if (!$this->emailAuthService->isEmailAuthorized($googleUser->getEmail())) {
-                throw ValidationException::withMessages([
-                    'google' => 'This Google email is not authorized for access. Please use your official trainee email.'
-                ]);
-            }
-            
-            $user = User::where('email', $googleUser->getEmail())->first();
-            
-            if (!$user) {
-                $user = User::create([
-                    'name' => $googleUser->getName(),
-                    'email' => $googleUser->getEmail(),
-                    'password' => bcrypt(rand(100000, 999999)),
-                    'google_id' => $googleUser->getId(),
-                    'role' => 'intern',
-                ]);
-            } else {
-                if (empty($user->google_id)) {
-                    $user->update(['google_id' => $googleUser->getId()]);
-                }
-            }
-            
-            Auth::login($user);
-            return redirect('/dashboard');
-            
-        } catch (\Exception $e) {
-            return redirect('/login')->withErrors([
-                'google' => $e->getMessage()
+   public function handleGoogleCallback()
+{
+    try {
+        $googleUser = Socialite::driver('google')->user();
+        
+        Log::debug('Google user data:', [
+            'email' => $googleUser->getEmail(),
+            'name' => $googleUser->getName()
+        ]);
+        
+        $email = strtolower(trim($googleUser->getEmail()));
+        
+        if (!$this->emailAuthService->isEmailAuthorized($email)) {
+            Log::error('Google email not authorized', ['email' => $email]);
+            throw ValidationException::withMessages([
+                'google' => 'Your Google email is not authorized for access.'
             ]);
         }
+        
+        $user = User::updateOrCreate(
+            ['email' => $email],
+            [
+                'name' => $googleUser->getName(),
+                'google_id' => $googleUser->getId(),
+                'password' => bcrypt(rand(100000, 999999)),
+                'role' => 'intern'
+            ]
+        );
+
+        Auth::login($user);
+        return redirect('/dashboard');
+        
+    } catch (\Exception $e) {
+        Log::error('Google auth failed: ' . $e->getMessage());
+        return redirect('/login')->withErrors([
+            'google' => 'Authentication failed. Please try again.'
+        ]);
     }
+}
 }
