@@ -124,4 +124,68 @@
         toggleText.textContent = type === "password" ? "Hide" : "Show";
     });
 </script>
+
+<script>
+    // Password toggle functionality (existing)
+    const togglePassword = document.getElementById("togglePassword");
+    const passwordInput = document.getElementById("password");
+    const eyeIcon = document.getElementById("eyeIcon");
+    const toggleText = document.getElementById("toggleText");
+
+    togglePassword.addEventListener("click", function () {
+        const type = passwordInput.getAttribute("type") === "password" ? "text" : "password";
+        passwordInput.setAttribute("type", type);
+        eyeIcon.className = type === "password" ? "bi bi-eye-slash" : "bi bi-eye";
+        toggleText.textContent = type === "password" ? "Hide" : "Show";
+    });
+
+    // Email validation against API
+    document.querySelector('form').addEventListener('submit', async function(e) {
+        const loginInput = document.getElementById('login');
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        
+        // Only validate if input looks like an email
+        if (emailRegex.test(loginInput.value)) {
+            e.preventDefault(); // Prevent form submission until validation is complete
+            
+            try {
+                const response = await fetch('https://prohub.slt.com.lk/ProhubTrainees/api/MainApi/AllActiveTrainees', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        secretKey: "TraineesApi_SK_8d!x7F#mZ3@pL2vW"
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.isSuccess && data.dataBundle) {
+                    // Check if email exists in the response
+                    const authorizedEmails = data.dataBundle.map(item => item.Trainee_Email.toLowerCase());
+                    const inputEmail = loginInput.value.toLowerCase();
+                    
+                    if (authorizedEmails.includes(inputEmail)) {
+                        // Email is authorized, submit the form
+                        this.submit();
+                    } else {
+                        // Email not authorized
+                        alert('This email is not authorized to access the system. Please use a registered trainee email.');
+                    }
+                } else {
+                    console.error('API Error:', data.errorMessage);
+                    alert('Error validating email: ' + (data.errorMessage || 'Unknown error'));
+                    // Allow submission in case of API failure (optional)
+                    this.submit();
+                }
+            } catch (error) {
+                console.error('Error validating email:', error);
+                alert('Error validating email. Please try again or contact support.');
+                // Allow submission in case of API failure (optional)
+                this.submit();
+            }
+        }
+    });
+</script>
 @endsection

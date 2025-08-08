@@ -173,4 +173,69 @@
         eyeConfirm.className = type === "password" ? "bi bi-eye-slash" : "bi bi-eye";
     });
 </script>
+<script>
+    // Password toggle functionality (existing)
+    const togglePassword = document.getElementById("togglePassword");
+    const passwordInput = document.getElementById("password");
+    const eyePassword = document.getElementById("eyePassword");
+
+    togglePassword.addEventListener("click", () => {
+        const type = passwordInput.type === "password" ? "text" : "password";
+        passwordInput.type = type;
+        eyePassword.className = type === "password" ? "bi bi-eye-slash" : "bi bi-eye";
+    });
+
+    const toggleConfirm = document.getElementById("toggleConfirm");
+    const confirmInput = document.getElementById("password_confirmation");
+    const eyeConfirm = document.getElementById("eyeConfirm");
+
+    toggleConfirm.addEventListener("click", () => {
+        const type = confirmInput.type === "password" ? "text" : "password";
+        confirmInput.type = type;
+        eyeConfirm.className = type === "password" ? "bi bi-eye-slash" : "bi bi-eye";
+    });
+
+    // Email validation against API
+    document.querySelector('form').addEventListener('submit', async function(e) {
+        const emailInput = document.getElementById('email');
+        
+        e.preventDefault(); // Always prevent submission for register page
+        
+        try {
+            const response = await fetch('https://prohub.slt.com.lk/ProhubTrainees/api/MainApi/AllActiveTrainees', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    secretKey: "TraineesApi_SK_8d!x7F#mZ3@pL2vW"
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.isSuccess && data.dataBundle) {
+                // Check if email exists in the response
+                const authorizedEmails = data.dataBundle.map(item => item.Trainee_Email.toLowerCase());
+                const inputEmail = emailInput.value.toLowerCase();
+                
+                if (authorizedEmails.includes(inputEmail)) {
+                    // Email is authorized, submit the form
+                    this.submit();
+                } else {
+                    // Email not authorized
+                    alert('This email is not authorized to register. Please use your official trainee email.');
+                }
+            } else {
+                console.error('API Error:', data.errorMessage);
+                alert('Error validating email: ' + (data.errorMessage || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error validating email:', error);
+            alert('Error validating email. Please try again or contact support.');
+            // Don't allow submission if API fails for registration
+        }
+    });
+</script>
+
 @endsection
