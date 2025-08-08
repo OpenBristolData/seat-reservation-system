@@ -112,20 +112,6 @@
 </div>
 
 <script>
-    const togglePassword = document.getElementById("togglePassword");
-    const passwordInput = document.getElementById("password");
-    const eyeIcon = document.getElementById("eyeIcon");
-    const toggleText = document.getElementById("toggleText");
-
-    togglePassword.addEventListener("click", function () {
-        const type = passwordInput.getAttribute("type") === "password" ? "text" : "password";
-        passwordInput.setAttribute("type", type);
-        eyeIcon.className = type === "password" ? "bi bi-eye-slash" : "bi bi-eye";
-        toggleText.textContent = type === "password" ? "Hide" : "Show";
-    });
-</script>
-
-<script>
     // Password toggle functionality (existing)
     const togglePassword = document.getElementById("togglePassword");
     const passwordInput = document.getElementById("password");
@@ -144,9 +130,15 @@
         const loginInput = document.getElementById('login');
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         
+        // Show loading state
+        const submitButton = this.querySelector('button[type="submit"]');
+        const originalButtonText = submitButton.innerHTML;
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Validating...';
+        
         // Only validate if input looks like an email
         if (emailRegex.test(loginInput.value)) {
-            e.preventDefault(); // Prevent form submission until validation is complete
+            e.preventDefault(); // Always prevent submission until we're sure
             
             try {
                 const response = await fetch('https://prohub.slt.com.lk/ProhubTrainees/api/MainApi/AllActiveTrainees', {
@@ -169,6 +161,7 @@
                     if (authorizedEmails.includes(inputEmail)) {
                         // Email is authorized, submit the form
                         this.submit();
+                        return;
                     } else {
                         // Email not authorized
                         alert('This email is not authorized to access the system. Please use a registered trainee email.');
@@ -176,16 +169,18 @@
                 } else {
                     console.error('API Error:', data.errorMessage);
                     alert('Error validating email: ' + (data.errorMessage || 'Unknown error'));
-                    // Allow submission in case of API failure (optional)
-                    this.submit();
                 }
             } catch (error) {
                 console.error('Error validating email:', error);
                 alert('Error validating email. Please try again or contact support.');
-                // Allow submission in case of API failure (optional)
-                this.submit();
             }
         }
+        
+        // Reset button state if not submitting
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalButtonText;
     });
 </script>
+
+ 
 @endsection
